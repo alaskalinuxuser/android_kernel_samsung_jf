@@ -381,16 +381,45 @@ enum vdd_dig_levels {
 	VDD_DIG_NUM
 };
 
+static int vdd_uv[] = {
+	[VDD_DIG_NONE]    =       0,
+	[VDD_DIG_LOW]     =  945000,
+	[VDD_DIG_NOMINAL] = 1050000,
+	[VDD_DIG_HIGH]    = 1150000
+};
+
+// Added after reviewing Faux123's code. WJH
+ssize_t get_gpu_vdd_levels_str(char *buf)
+{
+	int i, len = 0;
+	
+	if (buf)
+	{
+		for (i = 1; i <= 3; i++)
+		{
+			len += sprintf(buf + len, "%d\n", vdd_uv[i]);
+		}
+	}
+	return len;
+}
+
+void set_gpu_vdd_levels(int uv_tbl[])
+{
+	int i;
+	for (i = 1; i <= 3; i++)
+	{
+		vdd_uv[i] = uv_tbl[i - 1];
+	}
+}
+// Added after reviewing Faux123's code. WJH
+
 static int set_vdd_dig_8960(struct clk_vdd_class *vdd_class, int level)
 {
-	static const int vdd_uv[] = {
-		[VDD_DIG_NONE]    =       0,
-		[VDD_DIG_LOW]     =  945000,
-		[VDD_DIG_NOMINAL] = 1050000,
-		[VDD_DIG_HIGH]    = 1150000
-	};
-	return rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_S3, RPM_VREG_VOTER3,
-				    vdd_uv[level], 1150000, 1);
+	int ret;
+	ret = rpm_vreg_set_voltage(RPM_VREG_ID_PM8921_S3, RPM_VREG_VOTER3,
+				    vdd_uv[level], vdd_uv[VDD_DIG_HIGH], 1);
+	//pr_alert("GPU VOLTAGE - %d - %d", vdd_uv[level], ret);
+	return ret;
 }
 
 static DEFINE_VDD_CLASS(vdd_dig, set_vdd_dig_8960, VDD_DIG_NUM);
@@ -3533,6 +3562,7 @@ static struct clk_freq_tbl clk_tbl_gfx3d[] = {
 	F_GFX3D(320000000, pll2,  2,  5),
 	F_GFX3D(400000000, pll2,  1,  2),
 	F_GFX3D(450000000, pll15, 1,  2),
+	F_GFX3D(487500000, pll15, 1,  2),
 	F_END
 };
 
@@ -3582,13 +3612,13 @@ static struct clk_freq_tbl clk_tbl_gfx3d_8930ab[] = {
 static unsigned long fmax_gfx3d_8064ab[VDD_DIG_NUM] = {
 	[VDD_DIG_LOW]     = 128000000,
 	[VDD_DIG_NOMINAL] = 325000000,
-	[VDD_DIG_HIGH]    = 450000000
+	[VDD_DIG_HIGH]    = 487500000
 };
 
 static unsigned long fmax_gfx3d_8064[VDD_DIG_NUM] = {
 	[VDD_DIG_LOW]     = 128000000,
 	[VDD_DIG_NOMINAL] = 325000000,
-	[VDD_DIG_HIGH]    = 400000000
+	[VDD_DIG_HIGH]    = 487500000
 };
 
 static unsigned long fmax_gfx3d_8930[VDD_DIG_NUM] = {

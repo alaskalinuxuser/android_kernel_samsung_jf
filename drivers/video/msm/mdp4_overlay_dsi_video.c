@@ -866,7 +866,15 @@ int mdp4_dsi_video_off(struct platform_device *pdev)
 		mixer = pipe->mixer_num;
 		mdp4_overlay_unset_mixer(mixer);
 		if (mfd->ref_cnt == 0) {
-			mdp4_dsi_video_free_base_pipe(mfd);
+			/* adb stop */
+			if (pipe->pipe_type == OVERLAY_TYPE_BF)
+				mdp4_overlay_borderfill_stage_down(pipe);
+
+			/* base pipe may change after borderfill_stage_down */
+			pipe = vctrl->base_pipe;
+			mdp4_mixer_stage_down(pipe, 1);
+			mdp4_overlay_pipe_free(pipe, 1);
+			vctrl->base_pipe = NULL;
 			msleep(20);
 		} else {
 			/* system suspending */

@@ -38,6 +38,9 @@
 #include <asm/mmu_context.h>
 
 #include "internal.h"
+#ifdef CONFIG_SDCARD_FS
+#include "../fs/sdcardfs/sdcardfs.h"
+#endif
 
 #ifndef arch_mmap_check
 #define arch_mmap_check(addr, len, flags)	(0)
@@ -46,18 +49,6 @@
 #ifndef arch_rebalance_pgtables
 #define arch_rebalance_pgtables(addr, len)		(addr)
 #endif
-
-#ifdef CONFIG_HAVE_ARCH_MMAP_RND_BITS
-const int mmap_rnd_bits_min = CONFIG_ARCH_MMAP_RND_BITS_MIN;
-const int mmap_rnd_bits_max = CONFIG_ARCH_MMAP_RND_BITS_MAX;
-int mmap_rnd_bits __read_mostly = CONFIG_ARCH_MMAP_RND_BITS;
-#endif
-#ifdef CONFIG_HAVE_ARCH_MMAP_RND_COMPAT_BITS
-const int mmap_rnd_compat_bits_min = CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MIN;
-const int mmap_rnd_compat_bits_max = CONFIG_ARCH_MMAP_RND_COMPAT_BITS_MAX;
-int mmap_rnd_compat_bits __read_mostly = CONFIG_ARCH_MMAP_RND_COMPAT_BITS;
-#endif
-
 
 static void unmap_region(struct mm_struct *mm,
 		struct vm_area_struct *vma, struct vm_area_struct *prev,
@@ -1012,6 +1003,10 @@ static unsigned long do_mmap_pgoff(struct file *file, unsigned long addr,
 	vm_flags_t vm_flags;
 	int error;
 	unsigned long reqprot = prot;
+#ifdef CONFIG_SDCARD_FS
+	if (file && (file->f_path.mnt->mnt_sb->s_magic == SDCARDFS_SUPER_MAGIC))
+		file = sdcardfs_lower_file(file);
+#endif
 
 	/*
 	 * Does the application expect PROT_READ to imply PROT_EXEC?

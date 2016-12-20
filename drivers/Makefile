@@ -158,5 +158,8 @@ ifeq (1, $(shell if [ -d ../../../../../../kernel/drivers/exfat ] ; then echo 1 
 	obj-y   += exfat/
 endif
 
+obj-$(CONFIG_CORESIGHT)		+= coresight/
+obj-$(CONFIG_ESOC)		+= esoc/
+
 #sensor_class
 obj-$(CONFIG_SENSORS)		+= sensors/

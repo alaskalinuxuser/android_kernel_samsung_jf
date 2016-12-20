@@ -1486,13 +1486,14 @@ static int brightness_control(int bl_level)
 	memcpy(magna_brightness_acl_pre, magna_brightness_acl_ref,
 					sizeof(magna_brightness_acl_ref));
 
-	magna_brightness_acl_ref[1] = 0x00; /* ACL off */
-
-	if (get_auto_brightness() == 6)
-		magna_brightness_acl_ref[1] |= 0x40; /* RE low */
-
-	if (mipi_pd.acl_status)
-		magna_brightness_acl_ref[1] |= 0x02; /* ACL 40% */
+	if (get_auto_brightness() == 6) {
+		magna_brightness_acl_ref[1] = 0x42; /*RE low, ACL 40%*/
+	} else {
+		if (mipi_pd.acl_status) 
+			magna_brightness_acl_ref[1] = 0x02; /*ACL 40%*/
+		else
+			magna_brightness_acl_ref[1] = 0x00; /*ACL off*/
+	}
 
 	if (memcmp(magna_brightness_acl_pre, magna_brightness_acl_ref,
 				sizeof(magna_brightness_acl_ref))) {
@@ -1576,13 +1577,14 @@ static int brightness_control(int bl_level)
 static int acl_control(int bl_level)
 {
 
-	magna_brightness_acl_ref[1] = 0x00; /* ACL off */
-
-	if (get_auto_brightness() == 6)
-		magna_brightness_acl_ref[1] |= 0x40; /* RE low */
-
-	if (mipi_pd.acl_status)
-		magna_brightness_acl_ref[1] |= 0x02; /* ACL 40% */
+	if (get_auto_brightness() == 6) {
+		magna_brightness_acl_ref[1] = 0x42; /*RE low, ACL 40%*/
+	} else {
+		if (mipi_pd.acl_status) 
+			magna_brightness_acl_ref[1] = 0x02; /*ACL 40%*/
+		else
+			magna_brightness_acl_ref[1] = 0x00; /*ACL off*/
+	}
 
 	return 1;
 }

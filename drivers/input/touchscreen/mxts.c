@@ -522,6 +522,51 @@ static void inform_charger_init(struct mxt_data *data)
 }
 #endif
 
+#ifdef TSP_BOOSTER
+static void mxt_set_dvfs_off(struct work_struct *work)
+{
+	struct mxt_data *data =
+		container_of(work, struct mxt_data, work_dvfs_off.work);
+
+	mutex_lock(&data->dvfs_lock);
+	set_freq_limit(DVFS_TOUCH_ID, -1);
+	data->dvfs_lock_status = false;
+	mutex_unlock(&data->dvfs_lock);
+
+	pr_info("[TSP] DVFS Off!\n");
+}
+
+static void mxt_set_dvfs_lock(struct mxt_data *data, uint32_t on)
+{
+	int ret = 0;
+
+	mutex_lock(&data->dvfs_lock);
+	if (on == 0) {
+		if (data->dvfs_lock_status) {
+			schedule_delayed_work(&data->work_dvfs_off,
+				msecs_to_jiffies(TOUCH_BOOSTER_OFF_TIME));
+		}
+	} else if (on == 1) {
+		cancel_delayed_work(&data->work_dvfs_off);
+		if (!data->dvfs_lock_status) {
+			ret = set_freq_limit(DVFS_TOUCH_ID, MIN_TOUCH_LIMIT);
+
+			if (ret < 0)
+				pr_err("%s: cpu lock failed(%d)\n",\
+							__func__, ret);
+
+			data->dvfs_lock_status = true;
+			pr_info("[TSP] DVFS On!\n");
+		}
+	} else if (on == 2) {
+		cancel_delayed_work(&data->work_dvfs_off);
+		schedule_work(&data->work_dvfs_off.work);
+	}
+	mutex_unlock(&data->dvfs_lock);
+}
+
+#endif /* - TOUCH_BOOSTER */
+
 static void mxt_report_input_data(struct mxt_data *data)
 {
 	int i;
@@ -612,10 +657,13 @@ static void mxt_report_input_data(struct mxt_data *data)
 			input_sync(data->input_dev);
 	}
 
-#if TSP_USE_SHAPETOUCH
+#if (TSP_USE_SHAPETOUCH || TSP_BOOSTER)
 	/* all fingers are released */
 	if (count == 0) {
+#if TSP_USE_SHAPETOUCH
 		data->sumsize = 0;
+#endif
+
 	}
 #endif
 	if (count)
@@ -624,6 +672,12 @@ static void mxt_report_input_data(struct mxt_data *data)
 		touch_is_pressed = 0;
 
 	data->finger_mask = 0;
+
+
+#ifdef TSP_BOOSTER
+	mxt_set_dvfs_lock(data, !!touch_is_pressed);
+#endif
+
 }
 
 static void mxt_release_all_finger(struct mxt_data *data)
@@ -760,6 +814,10 @@ static void mxt_treat_T9_object(struct mxt_data *data,
 		} else if (msg[0] & MXT_MOVE_MSG_MASK) {
 			data->fingers[id].mcount += 1;
 		}
+
+#ifdef TSP_BOOSTER
+	/*	mxt_set_dvfs_on(data, true);*/
+#endif
 	} else if ((msg[0] & MXT_SUPPRESS_MSG_MASK)
 		&& (data->fingers[id].state != MXT_STATE_INACTIVE)) {
 		data->fingers[id].z = 0;
@@ -1374,7 +1432,7 @@ static int mxt_initialize(struct mxt_data *data)
 {
 	struct i2c_client *client = data->client;
 
-	u32 read_info_crc, calc_info_crc;
+	u32 read_info_crc = 0, calc_info_crc = 0;
 	int ret;
 
 	ret = mxt_read_id_info(data);
@@ -1565,6 +1623,10 @@ static int mxt_stop(struct mxt_data *data)
 		goto err_power_off;
 	}
 	mxt_release_all_finger(data);
+#ifdef TSP_BOOSTER
+	mxt_set_dvfs_lock(data, 2);
+	pr_info("[TSP] dvfs_lock free.\n");
+#endif
 	return 0;
 
 err_power_off:
@@ -2010,6 +2072,12 @@ static int __devinit mxt_probe(struct i2c_client *client,
 	error = input_register_device(input_dev);
 	if (error)
 		goto err_register_input_device;
+#ifdef TSP_BOOSTER
+	mutex_init(&data->dvfs_lock);
+	INIT_DELAYED_WORK(&data->work_dvfs_off, mxt_set_dvfs_off);
+	data->dvfs_lock_status = false;
+#endif
+
 
 	error = mxt_sysfs_init(client);
 	if (error < 0) {

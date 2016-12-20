@@ -1,0 +1,73 @@
+# Kernel samsung jf
+
+This was designed to be used on a Samsung Galaxy S4, SGH-M919, T-Mobile phone (JFLTETMO), but may be used on other JF variants. It was sucessfully tested on an i9505, and a JFLTEAIO.
+
+Feel free to use any of this material!
+
+-AlaskaLinuxUser
+https://thealaskalinuxuser.wordpress.com/
+
+AKLU-jf kernel
+
+Features:
+-Lionheart and many other governors
+-CPU overclocked to 1998 MHz
+-GPU overclocked to 487 Mhz
+-CPU and GPU voltage control (over/under)
+-Fast charge
+-Psudo file system encryption support
+-Fauxsound 2.1
+
+
+Change log:
+20160817
+-Updated Fauxsound to 2.1
+
+20160809
+-Added voltage control after reviewing Faux123 and Javelinanddart's code.
+  -Over/under volt control for CPU and GPU. KA app only supports CPU at this time.
+  -Control GPU at /sys/devices/system/cpu/cpufreq/vdd_table/gpu_vdd_levels
+  -Control CPU at /sys/devices/system/cpu/cpufreq/vdd_table/vdd_levels
+
+20160808
+-Fixed GPU simple governor. It now works and is selectable.
+-Added 450 MHz GPU frequency back in. Still overclocked to 487 MHz.
+
+20160729
+-Edited overclocking to add 25mv to overclock 1998 MHz.
+-Added 1890MHz CPU frequency back in. Still overclocked to 1998 MHz.
+
+20160728
+-Added wheatley governor
+
+20160727
+-Added VR I/O scheduler
+-Enabled more Governors, in addition to the others:
+	Lagfree
+	Intelliactive
+	Intellidemand
+	SmartassV2
+	Badass
+-Edited SmartMax governor minimum frequency to 384000, it was 368000, which had potential to cause the sleep of death.
+
+20160725
+-Added CPU overclock from 1890MHz to 1998 MHz with some modified numbers pulled from work done by @faux123!
+
+20160722
+-Turned Lionheart and Smartmax back on.
+
+20160720
+-Added GPU overclock from 450 MHz to 487 MHz with some numbers pulled from work done by @faux123!
+
+20160706
+-Added Fast Charge commits! Enable with Kernel Adiutor App!
+
+20160705
+-Changed source to ArcTeam kernel 3.4.112
+-Enabled Lionheart and Smartmax Governors!
+-Enabled psudo file system encryption
+
+Pre 20160705
+-Using source 3.4.110
+-Added Lionheart Governor!
+

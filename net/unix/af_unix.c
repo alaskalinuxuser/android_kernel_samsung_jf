@@ -226,6 +226,7 @@ static int unix_mkname(struct sockaddr_un *sunaddr, int len, unsigned *hashp)
 		 */
 		((char *)sunaddr)[len] = 0;
 		len = strlen(sunaddr->sun_path)+1+sizeof(short);
+		*hashp = 0;
 		return len;
 	}
 
@@ -1608,6 +1609,7 @@ static int unix_dgram_sendmsg(struct kiocb *kiocb, struct socket *sock,
 		sunaddr = NULL;
 		err = -ENOTCONN;
 		other = unix_peer_get(sk);
+		hash = 0;
 		if (!other)
 			goto out;
 	}
@@ -2051,6 +2053,10 @@ static long unix_stream_data_wait(struct sock *sk, long timeo)
 		unix_state_unlock(sk);
 		timeo = freezable_schedule_timeout(timeo);
 		unix_state_lock(sk);
+
+		if (sock_flag(sk, SOCK_DEAD))
+			break;
+
 		clear_bit(SOCK_ASYNC_WAITDATA, &sk->sk_socket->flags);
 	}
 
@@ -2114,6 +2120,10 @@ static int unix_stream_recvmsg(struct kiocb *iocb, struct socket *sock,
 		struct sk_buff *skb;
 
 		unix_state_lock(sk);
+		if (sock_flag(sk, SOCK_DEAD)) {
+			err = -ECONNRESET;
+			goto unlock;
+		}
 		skb = skb_peek(&sk->sk_receive_queue);
 again:
 		if (skb == NULL) {

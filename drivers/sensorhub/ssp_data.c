@@ -38,13 +38,6 @@
 static void get_timestamp(struct ssp_data *data, int iSensorData,
 	struct sensor_value *sensorsdata, struct ssp_time_diff *sensortime)
 {
-	if ((iSensorData == PROXIMITY_SENSOR) || (iSensorData == GESTURE_SENSOR)
-		|| (iSensorData == STEP_DETECTOR) || (iSensorData == SIG_MOTION_SENSOR)
-		|| (iSensorData == STEP_COUNTER)) {
-		sensorsdata->timestamp = data->timestamp;
-		return;
-	}
-
 	if (((sensortime->irq_diff * 10) >
 		(data->adDelayBuf[iSensorData] * 18))
 		&& ((sensortime->irq_diff * 10) <
@@ -323,9 +316,7 @@ int parse_dataframe(struct ssp_data *data, char *pchRcvDataFrame, int iLength)
 			else if ((iSensorData == PROXIMITY_SENSOR) ||
 				(iSensorData == PROXIMITY_RAW) ||
 				(iSensorData == GESTURE_SENSOR) ||
-				(iSensorData == SIG_MOTION_SENSOR) ||
-				(iSensorData == STEP_DETECTOR) ||
-				(iSensorData == STEP_COUNTER))
+				(iSensorData == SIG_MOTION_SENSOR))
 				data->report_sensor_data[iSensorData](data,
 					sensorsdata);
 			else

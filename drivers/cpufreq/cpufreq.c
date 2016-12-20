@@ -627,6 +627,82 @@ static ssize_t show_bios_limit(struct cpufreq_policy *policy, char *buf)
 	}
 	return sprintf(buf, "%u\n", policy->cpuinfo.max_freq);
 }
+// WJH added based on Javelinanddart and Faux123 code.
+extern ssize_t acpuclk_get_vdd_levels_str(char *buf);
+extern void acpuclk_set_vdd(unsigned acpu_khz, int vdd);
+
+static ssize_t show_vdd_levels(struct kobject *a, struct attribute *b, char *buf) {
+	return acpuclk_get_vdd_levels_str(buf);
+}
+
+static ssize_t store_vdd_levels(struct kobject *a, struct attribute *b, const char *buf, size_t count) {
+
+	int i = 0, j;
+	int pair[2] = { 0, 0 };
+	int sign = 0;
+
+	if (count < 1)
+		return 0;
+
+	if (buf[0] == '-') {
+		sign = -1;
+		i++;
+	}
+	else if (buf[0] == '+') {
+		sign = 1;
+		i++;
+	}
+
+	for (j = 0; i < count; i++) {
+
+		char c = buf[i];
+
+		if ((c >= '0') && (c <= '9')) {
+			pair[j] *= 10;
+			pair[j] += (c - '0');
+		}
+		else if ((c == ' ') || (c == '\t')) {
+			if (pair[j] != 0) {
+				j++;
+
+				if ((sign != 0) || (j > 1))
+					break;
+			}
+		}
+		else
+			break;
+	}
+
+	if (sign != 0) {
+		if (pair[0] > 0)
+			acpuclk_set_vdd(0, sign * pair[0]);
+	}
+	else {
+		if ((pair[0] > 0) && (pair[1] > 0))
+			acpuclk_set_vdd((unsigned)pair[0], pair[1]);
+		else
+			return -EINVAL;
+	}
+	return count;
+}
+// WJH added based on Javelinanddart and Faux123 code.
+extern ssize_t get_gpu_vdd_levels_str(char *buf);
+extern void set_gpu_vdd_levels(int uv_tbl[]);
+
+static ssize_t show_gpu_vdd_levels(struct kobject *a, struct attribute *b, char *buf)
+{
+	return get_gpu_vdd_levels_str(buf);
+}
+
+static ssize_t store_gpu_vdd_levels(struct kobject *a, struct attribute *b, const char *buf, size_t count)
+{
+	unsigned int ret = -EINVAL;
+	unsigned int u[3];
+	ret = sscanf(buf, "%d %d %d", &u[0], &u[1], &u[2]);
+	set_gpu_vdd_levels(u);
+	return count;
+}
+// WJH added based on Javelinanddart and Faux123 code.
 
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
@@ -643,6 +719,8 @@ cpufreq_freq_attr_rw(scaling_min_freq);
 cpufreq_freq_attr_rw(scaling_max_freq);
 cpufreq_freq_attr_rw(scaling_governor);
 cpufreq_freq_attr_rw(scaling_setspeed);
+define_one_global_rw(vdd_levels);
+define_one_global_rw(gpu_vdd_levels);
 
 static struct attribute *default_attrs[] = {
 	&cpuinfo_min_freq.attr,
@@ -658,6 +736,17 @@ static struct attribute *default_attrs[] = {
 	&scaling_available_governors.attr,
 	&scaling_setspeed.attr,
 	NULL
+};
+// WJH added after reviewing Javelinanddart and Faux123 code.
+static struct attribute *voltage_attrs[] = {
+	&vdd_levels.attr,
+	&gpu_vdd_levels.attr,
+	NULL
+};
+
+static struct attribute_group voltage_attr_group = {
+	.attrs = voltage_attrs,
+	.name = "vdd_table",
 };
 
 struct kobject *cpufreq_global_kobject;
@@ -1341,9 +1430,6 @@ static unsigned int __cpufreq_get(unsigned int cpu)
 
 	ret_freq = cpufreq_driver->get(cpu);
 
-	if (!policy)
-		return ret_freq;
-
 	if (ret_freq && policy->cur &&
 		!(cpufreq_driver->flags & CPUFREQ_CONST_LOOPS)) {
 		/* verify no discrepancy between actual and
@@ -1902,6 +1988,28 @@ static int __cpuinit cpufreq_cpu_callback(struct notifier_block *nfb,
 		case CPU_ONLINE:
 		case CPU_ONLINE_FROZEN:
 			cpufreq_add_dev(dev, NULL);
+#ifdef CONFIG_SEC_DVFS
+			/* if min or max lock is set, online cpu needs to change it's own rate immediately after addind cpufreq_dev */
+			{
+				unsigned int target_freq, min_freq, max_freq;
+				struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
+				if (policy) {
+					min_freq = get_min_lock();
+					max_freq = get_max_lock();
+
+					target_freq = policy->cur;
+					if (min_freq && target_freq < min_freq)
+						target_freq = min_freq;
+					if (max_freq && target_freq > max_freq)
+						target_freq = max_freq;
+
+					if (target_freq != policy->cur)
+						__cpufreq_driver_target(policy, target_freq, CPUFREQ_RELATION_L);
+
+					cpufreq_cpu_put(policy);
+				}
+			}
+#endif
 			break;
 		case CPU_DOWN_PREPARE:
 		case CPU_DOWN_PREPARE_FROZEN:
@@ -1962,11 +2070,7 @@ int cpufreq_register_driver(struct cpufreq_driver *driver_data)
 	cpufreq_driver = driver_data;
 	spin_unlock_irqrestore(&cpufreq_driver_lock, flags);
 
-	register_hotcpu_notifier(&cpufreq_cpu_notifier);
-
-	get_online_cpus();
 	ret = subsys_interface_register(&cpufreq_interface);
-	put_online_cpus();
 	if (ret)
 		goto err_null_driver;
 
@@ -1989,13 +2093,13 @@ int cpufreq_register_driver(struct cpufreq_driver *driver_data)
 		}
 	}
 
+	register_hotcpu_notifier(&cpufreq_cpu_notifier);
 	pr_debug("driver %s up and running\n", driver_data->name);
 
 	return 0;
 err_if_unreg:
 	subsys_interface_unregister(&cpufreq_interface);
 err_null_driver:
-	unregister_hotcpu_notifier(&cpufreq_cpu_notifier);
 	spin_lock_irqsave(&cpufreq_driver_lock, flags);
 	cpufreq_driver = NULL;
 	spin_unlock_irqrestore(&cpufreq_driver_lock, flags);
@@ -2035,6 +2139,7 @@ EXPORT_SYMBOL_GPL(cpufreq_unregister_driver);
 static int __init cpufreq_core_init(void)
 {
 	int cpu;
+	int rc;
 
 	if (cpufreq_disabled())
 		return -ENODEV;
@@ -2053,7 +2158,7 @@ static int __init cpufreq_core_init(void)
 	cpufreq_global_kobject->kset = cpufreq_kset;
 
 	register_syscore_ops(&cpufreq_syscore_ops);
-
+	rc = sysfs_create_group(cpufreq_global_kobject, &voltage_attr_group);
 	return 0;
 }
 core_initcall(cpufreq_core_init);

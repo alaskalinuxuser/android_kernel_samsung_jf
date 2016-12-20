@@ -214,6 +214,7 @@ void unlock_policy_rwsem_write(int cpu);
 
 #define CPUFREQ_RELATION_L 0  /* lowest frequency at or above target */
 #define CPUFREQ_RELATION_H 1  /* highest frequency below or at target */
+#define CPUFREQ_RELATION_C 2  /* closest frequency to target */
 
 struct freq_attr;
 
@@ -345,6 +346,55 @@ static inline unsigned int cpufreq_quick_get_max(unsigned int cpu)
 }
 #endif
 
+#ifdef CONFIG_SEC_DVFS
+enum {
+	BOOT_CPU = 0,
+};
+
+int get_max_freq(void);
+int get_min_freq(void);
+
+#define MAX_FREQ_LIMIT		get_max_freq() /* 1512000 */
+#define MIN_FREQ_LIMIT		get_min_freq() /* 384000 */
+
+#define MIN_TOUCH_LIMIT		1134000
+#define MIN_TOUCH_HIGH_LIMIT		1890000
+#define MIN_TOUCH_LIMIT_SECOND	810000
+#define MIN_TOUCH_HIGH_LIMIT_SECOND	1566000
+
+#ifdef CONFIG_TARGET_SERIES_DALI
+#define MAX_UNICPU_LIMIT	1188000
+#else
+#define MAX_UNICPU_LIMIT	1242000
+#endif
+
+#define UPDATE_NOW_BITS		0xFF
+
+enum {
+	DVFS_NO_ID			= 0,
+
+	/* need to update now */
+	DVFS_TOUCH_ID			= 0x00000001,
+	DVFS_APPS_MIN_ID		= 0x00000002,
+	DVFS_APPS_MAX_ID		= 0x00000004,
+	DVFS_UNICPU_ID			= 0x00000008,
+
+	/* DO NOT UPDATE NOW */
+	DVFS_THERMALD_ID		= 0x00000100,
+
+	DVFS_MAX_ID
+};
+
+
+int set_freq_limit(unsigned long id, unsigned int freq);
+
+unsigned int get_min_lock(void);
+unsigned int get_max_lock(void);
+void set_min_lock(int freq);
+void set_max_lock(int freq);
+
+#endif
+
 /*********************************************************************
  *                       CPUFREQ DEFAULT GOVERNOR                    *
  *********************************************************************/
@@ -374,6 +424,30 @@ extern struct cpufreq_governor cpufreq_gov_conservative;
 #elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTERACTIVE)
 extern struct cpufreq_governor cpufreq_gov_interactive;
 #define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_interactive)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_BADASS)
+extern struct cpufreq_governor cpufreq_gov_badass;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_badass)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SMARTMAX)
+extern struct cpufreq_governor cpufreq_gov_smartmax;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_smartmax)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_SMARTASSV2)
+extern struct cpufreq_governor cpufreq_gov_smartass2;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_smartass2)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTELLIDEMAND)
+extern struct cpufreq_governor cpufreq_gov_intellidemand;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_intellidemand)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_INTELLIACTIVE)
+extern struct cpufreq_governor cpufreq_gov_intelliactive;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_intelliactive)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_LAGFREE)
+extern struct cpufreq_governor cpufreq_gov_lagfree;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_lagfree)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_LIONHEART)
+extern struct cpufreq_governor cpufreq_gov_lionheart;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_lionheart)
+#elif defined(CONFIG_CPU_FREQ_DEFAULT_GOV_WHEATLEY)
+extern struct cpufreq_governor cpufreq_gov_wheatley;
+#define CPUFREQ_DEFAULT_GOVERNOR	(&cpufreq_gov_wheatley)
 #endif
 
 

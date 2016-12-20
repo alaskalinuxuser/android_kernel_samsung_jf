@@ -107,10 +107,10 @@ xt_socket_get4_sk(const struct sk_buff *skb, struct xt_action_param *par)
 {
 	const struct iphdr *iph = ip_hdr(skb);
 	struct udphdr _hdr, *hp = NULL;
-	struct sock *sk;
-	__be32 daddr, saddr;
-	__be16 dport, sport;
-	u8 protocol;
+	struct sock *sk = 0;
+	__be32 daddr = 0, saddr = 0;
+	__be16 dport = 0, sport = 0;
+	u8 protocol = 0;
 #ifdef XT_SOCKET_HAVE_CONNTRACK
 	struct nf_conn const *ct;
 	enum ip_conntrack_info ctinfo;
@@ -276,8 +276,8 @@ xt_socket_get6_sk(const struct sk_buff *skb, struct xt_action_param *par)
 	struct ipv6hdr ipv6_var, *iph = ipv6_hdr(skb);
 	struct udphdr _hdr, *hp = NULL;
 	struct sock *sk;
-	const struct in6_addr *daddr, *saddr;
-	__be16 dport, sport;
+	const struct in6_addr *daddr = 0, *saddr = 0;
+	__be16 dport = 0, sport = 0;
 	int thoff, tproto;
 
 	tproto = ipv6_find_hdr(skb, &thoff, -1, NULL);
@@ -299,7 +299,7 @@ xt_socket_get6_sk(const struct sk_buff *skb, struct xt_action_param *par)
 
 	} else if (tproto == IPPROTO_ICMPV6) {
 		if (extract_icmp6_fields(skb, thoff, &tproto, &saddr, &daddr,
- 					 &sport, &dport, &ipv6_var))
+					 &sport, &dport, &ipv6_var))
 			return NULL;
 	} else {
 		return NULL;

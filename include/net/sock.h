@@ -328,8 +328,8 @@ struct sock {
 				sk_no_check  : 2,
 				sk_userlocks : 4,
 				sk_protocol  : 8,
-#define SK_PROTOCOL_MAX ((u8)~0U)
 				sk_type      : 16;
+#define SK_PROTOCOL_MAX ((u8)~0U)
 	kmemcheck_bitfield_end(flags);
 	int			sk_wmem_queued;
 	gfp_t			sk_allocation;
@@ -921,7 +921,6 @@ struct proto {
 	void			(*destroy_cgroup)(struct cgroup *cgrp);
 	struct cg_proto		*(*proto_cgroup)(struct mem_cgroup *memcg);
 #endif
-	int			(*diag_destroy)(struct sock *sk, int err);
 };
 
 struct cg_proto {
