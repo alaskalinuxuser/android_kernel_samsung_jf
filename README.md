@@ -2,6 +2,9 @@
 AKLU "N" Kernel for Samsung Galaxy S4. https://thealaskalinuxuser.wordpress.com
 
 Change Log:
+20161222
++ Added Faux123's Intelliplug hotplugging option.
+
 20161110
 + Added I/O Schedulers:
   - SIO
