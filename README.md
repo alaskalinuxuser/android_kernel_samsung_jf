@@ -2,6 +2,8 @@
 AKLU "N" Kernel for Samsung Galaxy S4. https://thealaskalinuxuser.wordpress.com
 
 Change Log:
++ Fixed WiFi hotspot issue for AOKP/RR N.
+
 20161222
 + Added Faux123's Intelliplug hotplugging option.
 
