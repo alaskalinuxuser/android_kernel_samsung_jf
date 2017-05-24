@@ -2,6 +2,10 @@
 AKLU "N" Kernel for Samsung Galaxy S4. https://thealaskalinuxuser.wordpress.com
 
 Change Log:
+20170524
++ Added GPU and CPU voltage control by Ktoonez!
+
+20170211
 + Fixed WiFi hotspot issue for AOKP/RR N.
 
 20161222
