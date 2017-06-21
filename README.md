@@ -2,6 +2,10 @@
 AKLU "N" Kernel for Samsung Galaxy S4. https://thealaskalinuxuser.wordpress.com
 
 Change Log:
+20170619
++ Added Fast Charge!
++ Added FauxSound!
+
 20170524
 + Added GPU and CPU voltage control by Ktoonez!
 
